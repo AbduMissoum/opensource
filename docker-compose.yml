@@ -1,0 +1,52 @@
+version: '3'
+services:
+  opensource-mongodb:
+    image: mongo
+    container_name: opensource
+    ports:
+      - "27017:27017"
+    restart: always
+    volumes:
+      - opensource-mongodb-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: opensourcedb
+
+  opensource:
+    build :
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+          NODEJS_DOCKER_IMAGE : node:19.3.0
+    container_name: opensource-app
+    command: yarn start 
+    depends_on:
+      - opensource-mongodb
+    expose:
+      - 8282
+    ports:
+      - 8282:8282  
+    restart: unless-stopped
+
+  opensource-mongo-express:
+    image: mongo-express
+    container_name: opensource-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_SERVER: opensource-mongodb
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: 'true'
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_ROOT_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_ROOT_PASSWORD}
+    volumes_from:
+      - opensource-mongodb
+    depends_on:
+      - opensource-mongodb
+    ports:
+      - 8081:8081
+    restart: unless-stopped
+
+volumes:
+  opensource-mongodb-data:
